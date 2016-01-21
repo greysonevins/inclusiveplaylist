@@ -16,8 +16,12 @@ function makeListOfSongs( accessToken, playlist ){
             spotifyApi.getPlaylistTracks(playlist.ownerId, playlist.playlistId, { 'offset' : String((x * 100)-100), 'limit' : '100', 'fields' : 'items' } )
                 .then((data) => {
                     data.items.map((tracks) => {
-                       listOfSongs.push( String(tracks.track.uri) )
-                       resolve(listOfSongs)
+                      if ( typeof tracks.track.uri == 'string' && String(tracks.track.uri).indexOf('spotify:track') >= 0 ){
+                         listOfSongs.push( String(tracks.track.uri) )
+                         if (x === totalRepeat){
+                           resolve(listOfSongs)
+                         }
+                      }
                     })
                 }, function(err) {
                   reject( err )
@@ -33,9 +37,12 @@ export default function makeSongsForPlaylist( accessToken, playlistsToAdd, numbe
         const makeList = makeListOfSongs( accessToken, playlistsToAdd[ playlist ] )
         makeList.then((data) => {
           songsAdd.push(data)
+
+        }).done((res) => {
           if ( playlist == ( playlistsToAdd.length - 1 )) {
              resolve(_.flatten(songsAdd))
-          }
+           }
+           return
         })
       }
   })
@@ -43,7 +50,15 @@ export default function makeSongsForPlaylist( accessToken, playlistsToAdd, numbe
       musicCheck.then((data) => {
         let randomSongsIndexs = []
         for (let x = 0; x < numberOfSongs; x++ ){
-          randomSongsIndexs.push( Math.floor((Math.random() * data.length) + 1) )
+          let randomNumber =  Math.floor((Math.random() * data.length))
+          if ( numberOfSongs < data.length ){
+            while( randomSongsIndexs.indexOf(randomNumber) >= 0 ){
+              randomNumber =  Math.floor((Math.random() * data.length))
+            }
+            randomSongsIndexs.push(randomNumber)
+          }else{
+            randomSongsIndexs.push(randomNumber)
+          }
 
         }
         const songsForPlaylist = randomSongsIndexs.map((index) => {
